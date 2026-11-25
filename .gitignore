@@ -1,0 +1,9 @@
+dist/
+build/
+.DS_Store
+ios/CraftSuite.xcodeproj/
+ios/CraftSuite/WebBundle/gridcraft/
+ios/CraftSuite/WebBundle/pdfcraft/
+ios/CraftSuite/WebBundle/wordcraft/
+*.ipa
+*.xcarchive

@@ -1,0 +1,72 @@
+name: CraftSuite
+options:
+  bundleIdPrefix: io.github.craftsuite
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    PRODUCT_BUNDLE_IDENTIFIER: io.github.craftsuite.ipad
+    GENERATE_INFOPLIST_FILE: NO
+targets:
+  CraftSuite:
+    type: application
+    platform: iOS
+    sources:
+      - path: CraftSuite
+        excludes:
+          - "WebBundle/**"
+      - path: CraftSuite/WebBundle
+        type: folder
+        buildPhase: resources
+    info:
+      path: CraftSuite/Info.plist
+      properties:
+        CFBundleDisplayName: Craft Suite
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        LSRequiresIPhoneOS: true
+        UIApplicationSupportsIndirectInputEvents: true
+        UIRequiresFullScreen: false
+        UILaunchScreen: {}
+        UIFileSharingEnabled: true
+        LSSupportsOpeningDocumentsInPlace: false
+        ITSAppUsesNonExemptEncryption: false
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Spreadsheet Document
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - org.openxmlformats.spreadsheetml.sheet
+              - com.microsoft.excel.xls
+              - public.comma-separated-values-text
+          - CFBundleTypeName: PDF Document
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - com.adobe.pdf
+          - CFBundleTypeName: Word Document
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - org.openxmlformats.wordprocessingml.document
+              - com.microsoft.word.doc
+              - public.rtf
+              - public.plain-text
+    settings:
+      base:
+        INFOPLIST_FILE: CraftSuite/Info.plist
+        ENABLE_BITCODE: NO

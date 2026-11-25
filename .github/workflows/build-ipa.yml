@@ -1,0 +1,54 @@
+name: Build iPad IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      gridcraft_version:
+        description: "GridCraft release tag (or 'latest')"
+        required: false
+        default: "latest"
+      pdfcraft_version:
+        description: "PdfCraft release tag (or 'latest')"
+        required: false
+        default: "latest"
+      wordcraft_version:
+        description: "WordCraft release tag (or 'latest')"
+        required: false
+        default: "latest"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-ipa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-ipa:
+    name: Build CraftSuite iPadOS (unsigned IPA)
+    runs-on: macos-15
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
+      GRIDCRAFT_VERSION: ${{ inputs.gridcraft_version || 'latest' }}
+      PDFCRAFT_VERSION: ${{ inputs.pdfcraft_version || 'latest' }}
+      WORDCRAFT_VERSION: ${{ inputs.wordcraft_version || 'latest' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Build unsigned IPA
+        run: bash scripts/build-ipa.sh
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CraftSuite-iPad-unsigned
+          path: |
+            dist/CraftSuite-iPad-unsigned.ipa
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
