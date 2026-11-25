@@ -24,6 +24,8 @@ struct CraftWebView: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> WKWebView {
+        WebViewKeyboardSupport.install()
+
         let config = WKWebViewConfiguration()
         config.allowsInlineMediaPlayback = true
         config.preferences.javaScriptCanOpenWindowsAutomatically = true
@@ -35,6 +37,11 @@ struct CraftWebView: UIViewRepresentable {
             forMainFrameOnly: true
         )
         userContentController.addUserScript(downloadBridgeScript)
+        userContentController.addUserScript(WKUserScript(
+            source: WebViewKeyboardSupport.canvasFocusBridgeJS,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        ))
         userContentController.add(WeakScriptMessageHandler(context.coordinator), name: "craftDownload")
         config.userContentController = userContentController
 
@@ -46,6 +53,15 @@ struct CraftWebView: UIViewRepresentable {
         webView.scrollView.isScrollEnabled = false
         webView.scrollView.bounces = false
         webView.scrollView.contentInsetAdjustmentBehavior = .never
+
+        // Hardware keyboard events only reach the page while the web view is first responder.
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.claimKeyboardFocus))
+        tap.cancelsTouchesInView = false
+        tap.delaysTouchesBegan = false
+        tap.delaysTouchesEnded = false
+        tap.delegate = context.coordinator
+        webView.addGestureRecognizer(tap)
+        context.coordinator.webView = webView
 
         context.coordinator.currentURL = url
         webView.load(URLRequest(url: url))
@@ -109,13 +125,32 @@ struct CraftWebView: UIViewRepresentable {
     })();
     """
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler, WKDownloadDelegate, UIDocumentPickerDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler, WKDownloadDelegate, UIDocumentPickerDelegate, UIGestureRecognizerDelegate {
         var parent: CraftWebView
         var currentURL: URL?
+        weak var webView: WKWebView?
         private var pendingDownloadURL: URL?
 
         init(parent: CraftWebView) {
             self.parent = parent
+        }
+
+        @objc func claimKeyboardFocus() {
+            guard let webView = webView, !webView.isFirstResponder else { return }
+            webView.becomeFirstResponder()
+        }
+
+        func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+        ) -> Bool {
+            true
+        }
+
+        // WebKit private UI delegate hook (iOS 13+): allow focus from page script to open the keyboard.
+        @objc(_webView:focusShouldStartInputSession:)
+        func webView(_ webView: WKWebView, focusShouldStartInputSession focusedElementInfo: AnyObject) -> Bool {
+            true
         }
 
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
@@ -128,6 +163,7 @@ struct CraftWebView: UIViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             DispatchQueue.main.async {
                 self.parent.isLoading = false
+                webView.becomeFirstResponder()
             }
         }
 
