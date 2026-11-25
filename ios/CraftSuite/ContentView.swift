@@ -5,7 +5,9 @@ struct ContentView: View {
     @Binding var selectedApp: CraftAppKind
     @Binding var openedFileQuery: String?
 
-    @State private var useWebGL: Bool = false
+    @State private var useWebGL: Bool = true
+    @State private var touchMode: CraftTouchMode = .scroll
+    @State private var keyboardToggleToken: Int = 0
     @State private var hideToolbar: Bool = false
     @State private var isLoading: Bool = true
     @State private var statusError: String?
@@ -94,17 +96,45 @@ struct ContentView: View {
             Spacer(minLength: 8)
 
             Button {
+                touchMode = (touchMode == .scroll) ? .select : .scroll
+            } label: {
+                Label(
+                    touchMode == .scroll ? "Scroll" : "Select",
+                    systemImage: touchMode == .scroll ? "hand.draw" : "selection.pin.in.out"
+                )
+                .font(.caption.weight(.semibold))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(
+                    touchMode == .select ? selectedApp.accentColor.opacity(0.22) : Color.secondary.opacity(0.14),
+                    in: Capsule()
+                )
+            }
+            .buttonStyle(.plain)
+            .help("Switch 1-finger drag between scrolling and selecting text/cells")
+
+            Button {
+                keyboardToggleToken += 1
+            } label: {
+                Image(systemName: "keyboard")
+                    .font(.body.weight(.medium))
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.plain)
+            .help("Show or hide virtual keyboard")
+
+            Button {
                 useWebGL.toggle()
                 reloadToken += 1
             } label: {
-                Label(useWebGL ? "WebGL2" : "Auto GPU", systemImage: "cpu")
+                Label(useWebGL ? "WebGL2" : "WebGPU", systemImage: "cpu")
                     .font(.caption.weight(.medium))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .background(useWebGL ? selectedApp.accentColor.opacity(0.18) : Color.secondary.opacity(0.14), in: Capsule())
             }
             .buttonStyle(.plain)
-            .help("Toggle WebGL2 fallback if WebGPU has rendering issues")
+            .help("Toggle WebGL2 (recommended on iPad) vs WebGPU")
 
             Button {
                 statusError = nil
@@ -151,8 +181,14 @@ struct ContentView: View {
             )
         } else if let port = server.port, let url = targetURL(port: port) {
             ZStack {
-                CraftWebView(url: url, isLoading: $isLoading, statusError: $statusError)
-                    .id("\(selectedApp.rawValue)-\(useWebGL ? "webgl" : "auto")-\(reloadToken)-\(openedFileQuery ?? "")")
+                CraftWebView(
+                    url: url,
+                    touchMode: touchMode,
+                    keyboardToggleToken: keyboardToggleToken,
+                    isLoading: $isLoading,
+                    statusError: $statusError
+                )
+                .id("\(selectedApp.rawValue)-\(useWebGL ? "webgl" : "auto")-\(reloadToken)-\(openedFileQuery ?? "")")
 
                 if isLoading {
                     VStack(spacing: 12) {

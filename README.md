@@ -43,8 +43,13 @@ Pilih salah satu metode berikut menggunakan Apple ID biasa:
 ## Fitur & Tips Penggunaan di iPad
 
 - **Pindah Aplikasi:** gunakan segmented switcher di bar atas (**GridCraft** | **PdfCraft** | **WordCraft**). Aplikasi yang tidak aktif otomatis dilepas dari memori agar hemat RAM iPad.
+- **Kontrol Touchscreen (`Scroll` vs `Select`):**
+  - Mode default **Scroll**: geser 1 jari untuk scroll halus dengan momentum, ketuk 1 jari untuk menaruh kursor di kata/sel (tidak lagi memblok kata).
+  - Mode **Select**: tekan pill **Scroll / Select** di toolbar jika ingin menyeret 1 jari untuk memblok teks di WordCraft atau memilih beberapa sel di GridCraft.
+  - **Geser 2 jari** selalu berfungsi untuk scroll/pan dan **cubit 2 jari** (*pinch*) untuk zoom di mode mana pun.
+- **Tombol Keyboard (`⌨️`):** tekan ikon keyboard di toolbar untuk memunculkan atau menyembunyikan keyboard virtual secara manual.
 - **Layar Penuh:** tekan tombol ikon mata di kanan atas untuk menyembunyikan toolbar saat menulis/menggambar. Akan muncul pill kecil untuk memunculkan toolbar kembali.
-- **Mode Renderer (Auto / WebGL2):** secara default memakai **Auto** (WebGPU jika didukung iPadOS, atau fallback ke WebGL2). Jika tampilan kanvas bermasalah di iPad tertentu, tekan tombol **WebGL2** di bar atas.
+- **Mode Renderer (`WebGL2` / `WebGPU`):** secara default memakai **WebGL2** agar stabil di iPadOS (bisa diganti ke WebGPU dari tombol di bar atas).
 - **Buka & Simpan File:**
   - Gunakan tombol **Open** di dalam aplikasi atau buka file `.xlsx` / `.pdf` / `.docx` dari aplikasi **Files** → **Share / Open in Craft Suite**.
   - Saat menekan **Save / Download / Export** di dalam aplikasi, iPadOS akan langsung membuka dialog native **Save to Files**.

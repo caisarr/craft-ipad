@@ -14,8 +14,15 @@ private final class WeakScriptMessageHandler: NSObject, WKScriptMessageHandler {
     }
 }
 
+enum CraftTouchMode: String {
+    case scroll
+    case select
+}
+
 struct CraftWebView: UIViewRepresentable {
     let url: URL
+    let touchMode: CraftTouchMode
+    let keyboardToggleToken: Int
     @Binding var isLoading: Bool
     @Binding var statusError: String?
 
@@ -38,7 +45,7 @@ struct CraftWebView: UIViewRepresentable {
         )
         userContentController.addUserScript(downloadBridgeScript)
         userContentController.addUserScript(WKUserScript(
-            source: WebViewKeyboardSupport.canvasFocusBridgeJS,
+            source: WebViewKeyboardSupport.touchAndKeyboardBridgeJS,
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true
         ))
@@ -54,24 +61,31 @@ struct CraftWebView: UIViewRepresentable {
         webView.scrollView.bounces = false
         webView.scrollView.contentInsetAdjustmentBehavior = .never
 
-        // Hardware keyboard events only reach the page while the web view is first responder.
-        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.claimKeyboardFocus))
-        tap.cancelsTouchesInView = false
-        tap.delaysTouchesBegan = false
-        tap.delaysTouchesEnded = false
-        tap.delegate = context.coordinator
-        webView.addGestureRecognizer(tap)
         context.coordinator.webView = webView
-
+        context.coordinator.lastTouchMode = touchMode
+        context.coordinator.lastKeyboardToggleToken = keyboardToggleToken
         context.coordinator.currentURL = url
         webView.load(URLRequest(url: url))
         return webView
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
+        context.coordinator.parent = self
         if context.coordinator.currentURL != url {
             context.coordinator.currentURL = url
             webView.load(URLRequest(url: url))
+        }
+        if context.coordinator.lastTouchMode != touchMode {
+            context.coordinator.lastTouchMode = touchMode
+            webView.evaluateJavaScript("window.__craftSetTouchMode && window.__craftSetTouchMode('\(touchMode.rawValue)');", completionHandler: nil)
+        }
+        if context.coordinator.lastKeyboardToggleToken != keyboardToggleToken {
+            context.coordinator.lastKeyboardToggleToken = keyboardToggleToken
+            webView.evaluateJavaScript("window.__craftToggleKeyboard && window.__craftToggleKeyboard();") { result, _ in
+                if let status = result as? String, status == "hidden" {
+                    webView.endEditing(true)
+                }
+            }
         }
     }
 
@@ -125,26 +139,16 @@ struct CraftWebView: UIViewRepresentable {
     })();
     """
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler, WKDownloadDelegate, UIDocumentPickerDelegate, UIGestureRecognizerDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler, WKDownloadDelegate, UIDocumentPickerDelegate {
         var parent: CraftWebView
         var currentURL: URL?
+        var lastTouchMode: CraftTouchMode = .scroll
+        var lastKeyboardToggleToken: Int = 0
         weak var webView: WKWebView?
         private var pendingDownloadURL: URL?
 
         init(parent: CraftWebView) {
             self.parent = parent
-        }
-
-        @objc func claimKeyboardFocus() {
-            guard let webView = webView, !webView.isFirstResponder else { return }
-            webView.becomeFirstResponder()
-        }
-
-        func gestureRecognizer(
-            _ gestureRecognizer: UIGestureRecognizer,
-            shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
-        ) -> Bool {
-            true
         }
 
         // WebKit private UI delegate hook (iOS 13+): allow focus from page script to open the keyboard.
@@ -163,6 +167,7 @@ struct CraftWebView: UIViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             DispatchQueue.main.async {
                 self.parent.isLoading = false
+                webView.evaluateJavaScript("window.__craftSetTouchMode && window.__craftSetTouchMode('\(self.parent.touchMode.rawValue)');", completionHandler: nil)
                 webView.becomeFirstResponder()
             }
         }
